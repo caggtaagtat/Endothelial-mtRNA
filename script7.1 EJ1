@@ -1,0 +1,60 @@
+#This script is written in R
+#Load required packages
+library(spliceSites)
+library(refGenome)
+
+#Set working directory
+setwd("/BAMfiles")
+
+#Define working directory and annotation directory
+andir <- "/BAMfiles"
+prdir <- "/BAMfiles"
+
+#Load junction table
+enjc80 <- loadGenome(file.path(andir, "hgjunc19"))
+
+#Load DNAStringSet
+load("/BAMfiles/hg19_fasta")
+
+#Load project table
+proj <- read.table("grs_sample_codes.csv",sep=",", header=T)
+proj$Samplename <- paste0(proj$project,".bam")
+
+#Load bam files
+bam <- file.path("/BAMfiles",proj$Samplename)
+bam_idx <- paste0(bam,".bai")
+bam 
+
+# A) Read aligns
+ga <- data.frame(gen=proj$gen, agg=proj$agg, loc=substr(as.character(proj$loc),1,1))
+bam_idx <- character()
+
+#For every BAM file
+for(i in 1:length(bam)){
+
+#Create an index
+bam_idx[i] <- paste0(bam[i],".bai")
+reader <- bamReader(bam[i])
+createIndex(reader,bam_idx[i])
+loadIndex(reader,bam_idx[i])
+reader <- bamReader(bam[i], idx=TRUE)
+count <- bamCountAll(reader)
+print(bam[i])
+print(count)
+}
+
+
+#Create new list for later results
+grs_list <- list()
+
+#For every BAM file
+for(i in 1:length(bam)){
+  
+  #Create data frame holding information about a gaps genomic coordinates
+  grs <- readPooledBamGaps(bam[i], idxInfiles = bam_idx[i])
+  grs_list[[bam[i]]] <- as.data.frame(grs)
+
+}
+
+#Save the data
+save(grs_list,file=file.path(prdir, "grs_list"))
