@@ -3,10 +3,12 @@
 #PBS -l walltime=71:59:59
 
 #Change directory
-cd /gpfs/project/jopto100/DGE_endo/Trimm2/
+cd /path_to/Project/
+mkdir Trimm
+cd /path_to/Project/Trimm/
 
 #For every compressed FASTQ file
-find /gpfs/project/jopto100/data/Foko/ -name "*.gz" | while read SAMPLE
+find /path_to/Project/Zipped_FASTQ_unprocessed/ -name "*.gz" | while read SAMPLE
 
 #Do the following
 do
