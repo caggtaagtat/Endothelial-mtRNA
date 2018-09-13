@@ -5,7 +5,9 @@
 #Load Python3
 module load Python/3.4.5
 
-#Change directory to location of trimmed FASTQ files
+#Change directory to new directory
+cd /path_to/Project/
+mkdir rRNA_depletion
 cd /path_to/Project/rRNA_depletion/
 
 #For every trimmed FASTQ file
