@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mem=100gb:arch=ivybridge
+#PBS -l walltime=71:59:59
+
+#Change working directory
+cd /path_to/Project/Gap_tab/
+
+#Make new directory with new genome for second STAR pass
+mkdir Genome2
+
+#Create Genome2
+/path_to/STAR --runMode genomeGenerate --genomeDir Genome2 --genomeFastaFiles /path_to/Homo_sapiens.GRCh38.91.gtf --sjdbOverhang 149 --sjdbFileChrStartEnd /path_to/Project/Gap_tab/SJ_tabs/Unique_SJin.tab
