@@ -1,0 +1,34 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=4:mem=16gb:arch=ivybridge
+#PBS -l walltime=71:59:59
+
+#Change directory
+cd /path_to/Project/Gap_tab/
+mkdir MTreads
+cd /path_to/Project/Gap_tab/MTreads/
+
+#Count mitochondrial/total number of un-/gapped reads. First create the text file
+echo -n > read_count.txt
+
+#For every fastq file in your directory
+find /path_to/Project/Gap_tab/BAM_files/ -name ".q255.bam" | while read SAMPLE
+
+#Do the following
+do
+
+#Get file name without the filepath
+FILEBASE=$(basename "${SAMPLE%.q255.bam}")
+
+
+echo $FILEBASE >> read_count.txt
+echo "total" >> read_count.txt
+/path_to/samtools view -c $SAMPLE >> read_count.txt 
+echo "total ungapped" >> read_count.txt
+/path_to/samtools view -c $SAMPLE >> read_count.txt
+
+echo "total_MT" >> read_count.txt
+/path_to/samtools view -c $SAMPLE "MT" >> read_count.txt
+echo "total ungapped_MT" >> read_count.txt
+/path_to/samtools view -c $SAMPLE "MT" >> read_count.txt
+
+done
