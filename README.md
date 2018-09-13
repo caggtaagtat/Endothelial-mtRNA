@@ -11,28 +11,28 @@ Reads were trimmed or even wholly discarded, based on base calling quality and a
 <br />
 
 ### Quality assesment
-The quality of the reads was assessed using the tool FASTQC and MultiQC (script QA), before and after every file processing step.
+The quality of the reads was assessed using the tool FASTQC and MultiQC (script3 QA), before and after every file processing step.
 <br />
 <br />
 
 ### Aligning with STAR
-For alignment and following analysis, the human genomic reference sequence (GRCh38) and annotation data -release 91 - were downloaded from ENSEMBL. Subsequently the reads were mapped to the human reference using the traditional aligner STAR version 2.5.4b (script3-6 STAR1-4).
+For alignment and following analysis, the human genomic reference sequence (GRCh38) and annotation data -release 91 - were downloaded from ENSEMBL. Subsequently the reads were mapped to the human reference using the traditional aligner STAR version 2.5.4b (script4-7 STAR1-4).
 <br />
 <br />
 
 ### Mapping with salmon
-For differntial gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script7 SALMON).
+For differntial gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script8 SALMON).
 <br />
 <br />
 
 
 ### Counting reads on mitochondrial transcript boundaries
-Read coverage of gene to gene boundaries of mitochondrial transcripts was calculated using the samtools software package (script8 BORDER). 
+Read coverage of gene to gene boundaries of mitochondrial transcripts was calculated using the samtools software package (script9 BORDER). 
 <br />
 <br />
 
 ### DGE
-DGE analysis was accomplished using the R package DESeq2 version 1.18.1 (script9 DGE). 
+DGE analysis was accomplished using the R package DESeq2 version 1.18.1 (script10 DGE). 
 <br />
 <br />
 <br />
