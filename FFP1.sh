@@ -1,8 +1,6 @@
 #!/bin/bash
 #PBS -l select=1:ncpus=8:mem=100gb:arch=ivybridge
 #PBS -l walltime=71:59:59
-#PBS -r n
-#PBS -M Johannes.Ptok@hhu.de
 
 #Change directory
 cd /gpfs/project/jopto100/DGE_endo/Trimm2/
