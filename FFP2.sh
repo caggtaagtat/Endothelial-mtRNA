@@ -6,10 +6,10 @@
 module load Python/3.4.5
 
 #Change directory to location of trimmed FASTQ files
-cd /Project/rRNA_depletion/
+cd /path_to/Project/rRNA_depletion/
 
 #For every trimmed FASTQ file
-find /Project/Trimm/ -name "*trim.fq.gz" | while read SAMPLE
+find /path_to/Project/Trimm/ -name "*trim.fq.gz" | while read SAMPLE
 
 #Do the following
 do
