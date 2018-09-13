@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mem=100gb:arch=ivybridge
+#PBS -l walltime=71:59:59
+
+#Collect all SJ_out.tab files in new directory SJ_tabs
+cd /path_to/Projekt/Gap_tab/
+mkdir SJ_tabs
+
+#For every fastq file in your directory
+for i in /path_to/Projekt/Gap_tab/*.STAR
+
+#Do the following
+do
+
+#Enter the new directory
+cd $i
+
+b=$(basename "${i%.STAR}")
+
+#Access files and copy them to new directory
+cp SJ.out.tab /path_to/Projekt/Gap_tab/SJ_tabs/$b.sj_out1.tab
+
+done
+
+#Getting only unique entries
+cd /path_to/Projekt/Gap_tab/SJ_tabs/
+cat *.tab > all_SJ_tabs.tab
+awk '!x[$0]++' all_SJ_tabs.tab > Unique_SJ_all.tab
+
+#Transforming SJ.tab to gtf file with all found junctions
+cd /path_to/Projekt/Gap_tab/SJ_tabs/
+awk 'BEGIN {OFS="\t"; strChar[0]="."; strChar[1]="+"; strChar[2]="-";} {if($5>0){print $1,$2,$3,strChar[$4]}}' /path_to/Projekt/Gap_tab/SJ_tabs/Unique_SJ_all.tab > SJin.tab
+awk '!x[$0]++' SJin.tab > Unique_SJin.tabs
+
+#Clean up unwanted files
+cd /path_to/Projekt/Gap_tab/SJ_tabs/
+rm *.tab
+
+cp Unique_SJin.tabs Unique_SJin.tab
+rm Unique_SJin.tabs
