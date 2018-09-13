@@ -1,0 +1,916 @@
+#This script is written in R
+#Load required packages 
+library(spliceSites)
+library(refGenome) 
+
+#Set working directory
+setwd("/Gap table")
+
+#Load data.frame list from before
+load("Gap table/end_list")
+
+#Load reference DNA sequence
+load("S:/Arbeitsgruppen VIRO/AG_Sch/Johannes Ptok_JoPt/WHK/Gap table/hg19_fasta")
+
+#Load project table with sample annotation
+load("endo_sample_codes")
+
+#Annotating from GTF file
+ens_gtf <- "Homo_sapiens.GRCh38.91.gtf"
+beg <- ensemblGenome()
+basedir(beg) <- system.file("extdata", package="refGenome")
+
+#Create junction table from gtf file
+read.gtf(beg, ens_gtf) 
+juc <- getSpliceTable(beg)
+
+
+#Transform fasta in right format
+nn <- strsplit(names(s)," ")
+nn <- lapply(nn, function(x){ x[[1]]})
+names(s) <- nn
+
+#Create list for later results
+end_list_processed <- list()
+
+#For every data.frame in end_list
+for(i in 1:length(end_list)){
+  
+  #Save the respective sample name
+  cur <-  end_list[[i]]
+  cur$name <- names(end_list)[i]
+  
+  #Normalize read count to total number of reads
+  cur$rpmg <- round((cur$nAligns/sum(cur$nAligns))*1000000,digits=3)
+  end_list_processed[[i]] <- cur
+
+}
+
+#Save the resulting table
+save(end_list_processed, file="end_list_processed")
+
+#Before file wise annotation, create empty list object for the results
+anno <- list()
+
+#For every data.frame object
+for(i in 1:length(end_list_processed)){ 
+
+#Create gapsites object
+ref_table <- end_list_processed[[i]]
+file_name <- substr((ref_table[1,14]),43,47)
+  
+ref_table$nAligns <- as.numeric(ref_table$nAligns)
+ref_table$seqid <- as.character(ref_table$seqid)
+  
+#Create a gapSites Object from the data frame for annotation etc
+rtbg <- gapSites( seqid=ref_table$seqid,lstart=ref_table$lstart,lend=ref_table$lend,
+                  rstart=ref_table$rstart,rend=ref_table$rend,gaplen=ref_table$gaplen,
+                  nr_aligns=ref_table$nAligns)
+  
+  
+#Add maxent scores
+mes <- load.maxEnt()
+rtbgx <- addMaxEnt(rtbg, s, mes)
+rtbgx <- addHbond(rtbgx, s)
+
+#Add annotation from gtf file
+annotation(rtbgx) <- annotate(rtbgx, juc)
+strand(rtbgx) <- getAnnStrand(rtbgx)
+rtbgx <- addGeneAligns(rtbgx)
+
+#save annotation
+rtbg <- annotation(rtbgx)
+
+#Convert gapSites object to data frame
+end_table <- as.data.frame.gapSites(rtbg)
+end_table2 <- as.data.frame.gapSites(rtbgx)
+  
+#check if order is the same by creating identification column
+ref_table$ID <- paste(ref_table$seqid,ref_table$lend,ref_table$rstart,ref_table$gaplen,ref_table$nAligns)
+end_table$ID <-  paste(end_table$seqid,end_table$lend,end_table$rstart,end_table$gaplen,end_table$nAligns)
+end_table2$ID <-  paste(end_table2$seqid,end_table2$lend,end_table2$rstart,end_table2$gaplen,end_table2$nAligns)
+
+#Insert information in annotated data from before
+end_table$nlstart <- ref_table$nlstart[match(end_table$ID,ref_table$ID)]
+end_table$qsm <- ref_table$qsm[match(end_table$ID,ref_table$ID)]
+end_table$gqs <- ref_table$gqs[match(end_table$ID,ref_table$ID)]
+end_table$nProbes <- 1
+end_table$name <- ref_table$name[match(end_table$ID,ref_table$ID)]
+end_table$strand <- end_table2$strand[match(end_table$ID,end_table2$ID)]
+end_table$strand.x <- NULL
+end_table$strand.y <- NULL
+end_table$meStrand <- NULL
+
+#Make table unique
+ab <- na.omit(end_table)
+ab <- unique(ab)
+abs <- end_table[!end_table$id %in% ab$id,]
+
+#Add Sequence of Donor site
+tbl <- ab
+  
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$lend-2
+ltbl$end <- tbl$lend+8
+  
+ltbl$begin[ltbl$strand =="-"] <- tbl$rstart[ltbl$strand =="-"]-8
+ltbl$end[ltbl$strand =="-"] <- tbl$rstart[ltbl$strand =="-"]+2
+  
+#Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+  
+#Get the sequence of respective genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+      
+    j <- j + 1
+      
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+ 
+#Insert sequence information into gapfile
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequence manipulation required (A to T, C to G etc...)
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+#Create new column for donor sequence and donor site
+ab$donor_seq <-  ltbl$lseq
+ab$donor_site <- substr(ab$donor_seq,4,5)
+
+#Test Donor site frequency
+table(ab$donor_site[ab$strand=="-"])  
+
+
+
+#Add Sequence of Acceptor site
+tbl <- ab
+
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$rstart-20
+ltbl$end <- tbl$rstart+2
+
+ltbl$begin[ltbl$strand =="-"] <- tbl$lend[ltbl$strand =="-"]-2
+ltbl$end[ltbl$strand =="-"] <- tbl$lend[ltbl$strand =="-"]+20
+
+# Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+
+#Get the sequence of respective genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+    
+    j <- j + 1
+    
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequence manipulation
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+ab$acceptor_seq <-  ltbl$lseq
+ab$acceptor_site <- substr(ab$acceptor_seq,19,20)
+
+
+
+#Normalize gap coordinates
+ab$norm_lstart <- ab$lstart 
+ab$norm_lstart[ab$strand == "-"] <- ab$rend[ab$strand == "-"]
+ab$norm_lend <- ab$lend
+ab$norm_lend[ab$strand == "-"] <- ab$rstart[ab$strand == "-"]
+
+#right
+ab$norm_rstart <- ab$rstart 
+ab$norm_rstart[ab$strand == "-"] <- ab$lend[ab$strand == "-"]
+ab$norm_rend <- ab$rend
+ab$norm_rend[ab$strand == "-"] <- ab$lstart[ab$strand == "-"]
+
+#Delete unnormalized coordinates
+ab$lend <- NULL
+ab$rend <- NULL
+ab$lstart <- NULL
+ab$rstart  <- NULL
+
+#Normalize the ldiff and rdiff entries of the gaps by the respective strand
+#ldiff
+ab$norm_ldiff <- ab$ldiff
+ab$norm_ldiff[ab$strand == "-"] <- ab$rdiff[ab$strand == "-"]
+ab$ldiff <- ab$norm_ldiff
+
+#rdiff
+ab$norm_rdiff <- ab$rdiff
+ab$norm_rdiff[ab$strand == "-"] <- ab$ldiff[ab$strand == "-"]
+ab$rdiff <- ab$norm_rdiff
+
+#Delete transformation variables
+ab$norm_ldiff <- NULL
+ab$norm_rdiff<- NULL
+
+#The ldiff on the minus strand is multiplied with -1, to assign negative relative distances to an annotated SD with positons on the exon.
+ab$ldiff[ab$strand == "-"]  <- -(ab$ldiff[ab$strand == "-"] )
+ab$rdiff[ab$strand == "-"]  <- -(ab$rdiff[ab$strand == "-"] )
+
+anno[[file_name]] <- ab
+
+
+}
+
+#Save the list
+save(anno, file="Annotated_end_file_sample_seperated")
+
+#Tidy up
+rm(ab, abs, beg, dt, end_table, end_table2, enjc80, end_list, end_list_processed, uc, ltbl, mes, nn , proj, ref_table, rtbg, rtbgx, rvl, tbl )
+
+#summarizing the table by agegroup, gender and location
+sample_table <- data.frame(name=names(anno))
+sample_table$group <- substr(sample_table$name,1,3)
+
+library("data.table", lib.loc="~/R/win-library/3.4")
+fib <- rbindlist(anno)
+dt <- rbindlist(anno)
+dt$ID <- paste(dt$seqid, dt$gene_name, dt$norm_lend, dt$norm_rstart)
+
+
+#Make fib unique
+fib$id <- NULL
+fib$nAligns <- NULL
+fib$gptm <- NULL
+fib$rpmg <- NULL
+fib$s5strand <- NULL
+fib$s3strand <- NULL
+fib$gene_aligns <- NULL
+fib$refid <- NULL
+fib$nref <- NULL
+fib$first_refid <- NULL
+fib$last_refid <- NULL
+fib$nadv <- NULL
+fib$nrev <- NULL
+fib$ID <- NULL
+fib$name <- NULL
+fib$nlstart <- NULL
+fib$qsm <- NULL
+fib$gqs <- NULL
+fib$norm_lstart <- NULL
+fib$norm_rend <- NULL
+fib$transcript_id <- NULL
+fib$nProbes <- NULL
+fib$donor_seq <- NULL
+fib$donor_site <- NULL
+fib$acceptor_seq <- NULL
+fib$acceptor_site <- NULL
+fib$mxe_ms3 <- NULL
+fib$mxe_ms5 <- NULL
+fib$mxe_ps3 <- NULL
+fib$mxe_ps5 <- NULL
+fib$lhbond <- NULL
+fib$rhbond <- NULL
+fib <- unique(fib)
+
+#Create new columns
+fib$nAligns<- 0
+fib$mean_rpmg <- 0
+fib$gqs <- 0
+fib$nProbes <- 0
+fib$aln_gn0  <- 0
+fib$aln_gh0  <- 0
+fib$aln_gf0  <- 0
+fib$aln_gfl  <- 0
+fib$mean_rpmg_gn0 <- 0
+fib$mean_rpmg_gh0 <- 0
+fib$mean_rpmg_gf0 <- 0
+fib$mean_rpmg_gfl <- 0
+fib$mean_GNR_rpmg_gn0 <- 0
+fib$mean_GNR_rpmg_gh0 <- 0
+fib$mean_GNR_rpmg_gf0 <- 0
+fib$mean_GNR_rpmg_gfl <- 0
+fib$mean_MRIG_rpmg_gn0 <- 0
+fib$mean_MRIG_rpmg_gh0 <- 0
+fib$mean_MRIG_rpmg_gf0 <- 0
+fib$mean_MRIG_rpmg_gfl <- 0
+fib$norm_lstart <- 0
+fib$norm_rend <- 0
+
+#Create ID column for fib table
+fib$ID <- paste(fib$seqid, fib$gene_name, fib$norm_lend, fib$norm_rstart)
+dt$group <- substr(dt$name,43,45 )
+
+#Save the data
+save(fib, dt, file = "Summarize_objects_endo")
+
+#For every data frame in list anno
+for(i in 1:length(anno)){ 
+  
+  #Get the current table
+  cur_tab <- anno[[i]]
+  file_name <- names(anno)[[i]]
+  
+  cur_tab$gene_name <- as.character(cur_tab$gene_name)
+  
+  #Get highest rpmg value witin same gene of an EJ (=MRIG), normalize every EJ coverage by MRIG
+  max_transc_expr <- data.frame(tapply(cur_tab$rpmg,cur_tab$gene_name, max))
+  max_transc_expr[2] <- row.names(max_transc_expr)
+  names(max_transc_expr) <- c("max_rpmg","gene_name")
+  cur_tab$MRIG <- max_transc_expr$max_rpmg[match(cur_tab$gene_name, max_transc_expr$gene_name)]
+  cur_tab$GNR <- round(cur_tab$rpmg/cur_tab$MRIG*100,digits=3)
+  cur_tab$MRIG <- as.numeric(cur_tab$MRIG)
+  cur_tab$GNR <- as.numeric(cur_tab$GNR)
+  
+  anno[[file_name]] <- cur_tab
+  
+  
+}
+
+
+dt <- rbindlist(anno)
+dt$ID <- paste(dt$seqid, dt$gene_name, dt$norm_lend, dt$norm_rstart)
+
+dt$group <- substr(dt$name,43,45 )
+fib$GNR <- NULL
+fib$MRIG <- NULL
+fib <- unique(fib)
+
+#Get same type of ID for the unique EJ table and the EJ per sample table
+dt$ID <- paste(dt$seqid, dt$gene_name, dt$norm_lend, dt$norm_rstart)
+fib$ID <- paste(fib$seqid, fib$gene_name, fib$norm_lend, fib$norm_rstart)
+
+#Insert info in fib table
+value <- data.frame(tapply(dt$gqs,dt$ID,max))
+value$name <- row.names(value)
+fib$gqs <- value[match(fib$ID, value$name),1]
+ 
+value <- data.frame(tapply(dt$nProbes,dt$ID,sum))
+value$name <- row.names(value)
+fib$nProbes <- value[match(fib$ID, value$name),1]
+
+
+
+
+#Align per group
+value <- data.frame(tapply(dt$nAligns[dt$group == "gn0"],dt$ID[dt$group == "gn0"],sum))
+value$name <- row.names(value)
+fib$aln_gn0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$nAligns[dt$group == "gh0"],dt$ID[dt$group == "gh0"],sum))
+value$name <- row.names(value)
+fib$aln_gh0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$nAligns[dt$group == "gf0"],dt$ID[dt$group == "gf0"],sum))
+value$name <- row.names(value)
+fib$aln_gf0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$nAligns[dt$group == "gfl"],dt$ID[dt$group == "gfl"],sum))
+value$name <- row.names(value)
+fib$aln_gfl  <- value[match(fib$ID, value$name),1]
+
+
+#RPMG per group
+value <- data.frame(tapply(dt$rpmg[dt$group == "gn0"],dt$ID[dt$group == "gn0"],mean))
+value$name <- row.names(value)
+fib$mean_rpmg_gn0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$rpmg[dt$group == "gh0"],dt$ID[dt$group == "gh0"],mean))
+value$name <- row.names(value)
+fib$mean_rpmg_gh0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$rpmg[dt$group == "gf0"],dt$ID[dt$group == "gf0"],mean))
+value$name <- row.names(value)
+fib$mean_rpmg_gf0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$rpmg[dt$group == "gfl"],dt$ID[dt$group == "gfl"],mean))
+value$name <- row.names(value)
+fib$mean_rpmg_gfl  <- value[match(fib$ID, value$name),1]
+
+
+
+#GNR per group
+value <- data.frame(tapply(dt$GNR[dt$group == "gn0"],dt$ID[dt$group == "gn0"],mean))
+value$name <- row.names(value)
+fib$mean_GNR_rpmg_gn0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$GNR[dt$group == "gh0"],dt$ID[dt$group == "gh0"],mean))
+value$name <- row.names(value)
+fib$mean_GNR_rpmg_gh0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$GNR[dt$group == "gf0"],dt$ID[dt$group == "gf0"],mean))
+value$name <- row.names(value)
+fib$mean_GNR_rpmg_gf0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$GNR[dt$group == "gfl"],dt$ID[dt$group == "gfl"],mean))
+value$name <- row.names(value)
+fib$mean_GNR_rpmg_gfl  <- value[match(fib$ID, value$name),1]
+  
+head(fib)
+
+#MRIG per group
+value <- data.frame(tapply(dt$MRIG[dt$group == "gn0"],dt$ID[dt$group == "gn0"],mean))
+value$name <- row.names(value)
+fib$mean_MRIG_rpmg_gn0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$MRIG[dt$group == "gh0"],dt$ID[dt$group == "gh0"],mean))
+value$name <- row.names(value)
+fib$mean_MRIG_rpmg_gh0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$MRIG[dt$group == "gf0"],dt$ID[dt$group == "gf0"],mean))
+value$name <- row.names(value)
+fib$mean_MRIG_rpmg_gf0  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$MRIG[dt$group == "gfl"],dt$ID[dt$group == "gfl"],mean))
+value$name <- row.names(value)
+fib$mean_MRIG_rpmg_gfl  <- value[match(fib$ID, value$name),1]
+
+
+#lstart and rend coordinates
+fibm <- fib[fib$strand=="-",]
+value <- data.frame(tapply(dt$norm_lstart[dt$strand == "-"],dt$ID[dt$strand == "-"],max))
+value$name <- row.names(value)
+fibm$norm_lstart  <- value[match(fibm$ID, value$name),1]
+
+value <- data.frame(tapply(dt$norm_rend[dt$strand == "-"],dt$ID[dt$strand == "-"],min))
+value$name <- row.names(value)
+fibm$norm_rend  <- value[match(fibm$ID, value$name),1]
+
+
+#Missing coordinates
+fibp <- fib[fib$strand=="+",]
+value <- data.frame(tapply(dt$norm_lstart[dt$strand == "+"],dt$ID[dt$strand == "+"],min))
+value$name <- row.names(value)
+fibp$norm_lstart  <- value[match(fibp$ID, value$name),1]
+
+value <- data.frame(tapply(dt$norm_rend[dt$strand == "+"],dt$ID[dt$strand == "+"],max))
+value$name <- row.names(value)
+fibp$norm_rend  <- value[match(fibp$ID, value$name),1]
+
+fib <- rbind(fibp,fibm)
+
+#Sum of aligns, mean of rpmg and n lstarts
+value <- data.frame(tapply(dt$nAligns,dt$ID ,sum))
+value$name <- row.names(value)
+fib$nAligns  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$rpmg,dt$ID ,mean))
+value$name <- row.names(value)
+fib$mean_rpmg  <- value[match(fib$ID, value$name),1]
+
+value <- data.frame(tapply(dt$nlstart,dt$ID ,max))
+value$name <- row.names(value)
+fib$nlstart  <- value[match(fib$ID, value$name),1]
+fib[is.na(fib)] <- 0
+
+#Save the table
+save(fib,file="Endo_group_aggregated")
+
+# Removing false positives
+#Generate new variable, to mark events, which have to be deleted later
+fib$auswahlfaktor <- 1
+
+#Using the variable auswahlfaktor, gaps with a length of more than 26914 nucleotides are deleted
+fib$auswahlfaktor[fib$gaplen > 26914] <- NA
+
+#Gaps which could not be assigned to a gene were marked to be deleted later on
+fib$auswahlfaktor[is.na(fib$gene_name)] <- NA
+
+#Delet the marked gaps
+fib<- na.omit(fib)
+fib$GNR <- NULL
+fib$MRIG <- NULL
+fib <- unique(fib)
+
+#Create a variable for gqs transformation
+fib$gqsfaktor <- 1
+
+#Gqsfactor for different naligns and nlstart combinations is added
+fib$gqsfaktor[(fib$nAligns == 1) ] <- 32
+
+fib$gqsfaktor[(fib$nAligns == 2)&(fib$nlstart == 1) ] <- 16
+fib$gqsfaktor[(fib$nAligns == 2)&(fib$nlstart == 2) ] <- 8
+
+fib$gqsfaktor[(fib$nAligns == 3)&(fib$nlstart == 1) ] <- (32/3)
+fib$gqsfaktor[(fib$nAligns == 3)&(fib$nlstart == 2) ] <- (16/3)
+fib$gqsfaktor[(fib$nAligns == 3)&(fib$nlstart == 3) ] <- (32/9)
+
+fib$gqsfaktor[(fib$nAligns >= 4)&(fib$nlstart == 1) ] <- 8
+fib$gqsfaktor[(fib$nAligns >= 4)&(fib$nlstart == 2) ] <- 4
+fib$gqsfaktor[(fib$nAligns >= 4)&(fib$nlstart == 3) ] <- (8/3)
+fib$gqsfaktor[(fib$nAligns >= 4)&(fib$nlstart == 4) ] <- 2
+fib$gqsfaktor[(fib$nAligns > 4)&(fib$nlstart == 5) ] <- 1.6
+fib$gqsfaktor[(fib$nAligns > 4)&(fib$nlstart == 6) ] <- (4/3)
+fib$gqsfaktor[(fib$nAligns > 4)&(fib$nlstart == 7) ] <- (8/7)
+
+#Controll the outcome
+head(fib)
+
+#The new gqs is calculated
+fib$gqs <- fib$gqs*fib$gqsfaktor
+
+#Delete the gqsfactor
+fib$gqsfaktor <- NULL
+
+#Delete all gaps with a gqs, less than 400, are marked to be deleted
+fib$auswahlfaktor[fib$gqs < 400] <- NA
+
+#Delet the marked gaps
+fib <- na.omit(fib)
+
+#Look at reads on chromosomes
+table(fib$seqid)
+
+#Load reference DNA sequence
+load("hg19_fasta")
+
+fib <- fib[fib$seqid %in% c(1:24,"X","Y"), ]
+fib <- na.omit(fib)
+fib$id <- 1:nrow(fib)
+fib$seqid <- as.character(fib$seqid)
+
+
+ab <- fib
+
+#Add Sequence of Donor site
+tbl <- ab
+
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$norm_lend-2
+ltbl$end <- tbl$norm_lend+8
+
+ltbl$begin[ltbl$strand =="-"] <- tbl$norm_lend[ltbl$strand =="-"]-8
+ltbl$end[ltbl$strand =="-"] <- tbl$norm_lend[ltbl$strand =="-"]+2
+
+# Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+
+#Get sequence of certain genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+    
+    j <- j + 1
+    
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequecne manipulation
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+ab$donor_seq <-  ltbl$lseq[match(ab$id, ltbl$id)]
+ab$donor_site <- substr(ab$donor_seq,4,5)
+
+#Test for Donor site frequency
+table(ab$donor_site[ab$strand=="-"])  
+
+
+
+#Add Sequence of Acceptor site
+tbl <- ab
+
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$norm_rstart-20
+ltbl$end <- tbl$norm_rstart+2
+
+ltbl$begin[ltbl$strand =="-"] <- tbl$norm_rstart[ltbl$strand =="-"]-2
+ltbl$end[ltbl$strand =="-"] <- tbl$norm_rstart[ltbl$strand =="-"]+20
+
+#Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+
+#Get the sequence of certain genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+    
+    j <- j + 1
+    
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequecne manipulation
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+ab$acceptor_seq <-  ltbl$lseq[match(ab$id, ltbl$id)]
+ab$acceptor_site <- substr(ab$acceptor_seq,19,20)
+
+table(ab$acceptor_site[ab$strand=="-"])
+
+
+#Add Sequence of SA surrounding
+tbl <- ab
+
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$norm_rstart-90
+ltbl$end <- tbl$norm_rstart+90
+
+ltbl$begin[ltbl$strand =="-"] <- tbl$norm_rstart[ltbl$strand =="-"]-90
+ltbl$end[ltbl$strand =="-"] <- tbl$norm_rstart[ltbl$strand =="-"]+90
+
+# Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+
+#Get sequence of certain genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+    
+    j <- j + 1
+    
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequecne manipulation
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+ab$SA_surrounding <-  ltbl$lseq[match(ab$id, ltbl$id)]
+
+
+
+
+
+#Add Sequence of SD surrounding
+tbl <- ab
+
+#Sequence to the left, generate a new dataset with following informations of the given table
+ltbl <- tbl
+ltbl$begin <- tbl$norm_lend-90
+ltbl$end <- tbl$norm_lend+90
+
+ltbl$begin[ltbl$strand =="-"] <- tbl$norm_lend[ltbl$strand =="-"]-90
+ltbl$end[ltbl$strand =="-"] <- tbl$norm_lend[ltbl$strand =="-"]+90
+
+# Sort table
+ltbl <- ltbl[order(ltbl$seqid, ltbl$begin), ]
+seqnames <- sort(unique(ltbl$seqid))
+rvl <- RleViewsList()
+n <- length(seqnames)
+dnames <- names(s)
+
+#Get sequence of certain genomic range
+j <- 1
+for(i in 1:n)
+{
+  lg <- match(seqnames[i], dnames)
+  if(!is.na(lg))
+  {
+    dt <- ltbl[ltbl$seqid== seqnames[i], ]
+    rvl[[j]] <- Views(s[[lg]], start=dt$begin, end=dt$end)
+    
+    j <- j + 1
+    
+  }else{
+    cat("Seqname mismatch: ", i, " ", seqnames[i])
+  }
+}
+
+ltbl$lseq <- unlist(lapply(rvl, as.character))
+
+#Minus strand sequecne manipulation
+ltbl$lseq[ltbl$strand=="-"] <- gsub("A","t",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("C","g",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("T","a",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("G","c",ltbl$lseq[ltbl$strand=="-"])
+
+ltbl$lseq[ltbl$strand=="-"] <- gsub("t","T",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("g","G",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("a","A",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- gsub("c","C",ltbl$lseq[ltbl$strand=="-"])
+ltbl$lseq[ltbl$strand=="-"] <- reverse(ltbl$lseq[ltbl$strand=="-"])
+
+ab$SD_surrounding <-  ltbl$lseq[match(ab$id, ltbl$id)]
+
+fib <- ab
+
+save(fib, file="endothel_processed1")
+
+
+
+#load("endothel_processed1")
+
+#get intrinsic ss strength
+#create a variable for the MaxEnt score
+fib$maxent <- 0
+
+#generate the requiered donor sequence for the MaxEnt score
+fib$seqmaxent <- substr(fib$donor_seq, 1,9)
+
+#Load the table with the maxent scores and the associated SD sequences
+load("HB und Maxentscore.RData")
+
+#Generate a vector, which assigns the positions of the matches of the gap's SDs with the MaxEnt table and add the Maxent score
+mtc <- match(fib$seqmaxent,m2$V1)
+fib$maxent<-m2$V2[mtc]
+
+#Remove the vector mtc
+rm(mtc)
+
+#Remove the generated special SD sequence, which was used for MaxEnt generation
+fib$seqmaxent <- NULL
+
+#Round the MaxEnt score of the gaps 
+fib$maxent <- round(fib$maxent, digits = 1)
+
+#Get the HBS
+fib$norm_lhbond <- 0
+mtc <- match(fib$donor_seq,hbg$seq)
+fib$norm_lhbond <- hbg$hbs[mtc]
+
+fib$norm_lhbond[is.na(fib$norm_lhbond)== T] <- 0
+
+#tidy up the workspace
+rm(hbg,m2)
+
+fib$sod <- NULL
+
+#Save the data
+save(fib, file="endothel_processed2")
+
+
+
+
+
+#Acceptor maxent calculation
+
+#load("endothel_processed2")
+
+curwd <- getwd()
+
+#Change working directory to the path with the maxent scripts
+setwd("S:/Arbeitsgruppen VIRO/AG_Sch/Johannes Ptok_JoPt/Masterarbeit/R daten/maxent")
+
+#Function to calculate maxentscore
+calculate_maxent <- function(seq_vector,maxent_type){
+  
+  #Delete file
+  file.remove("Input_sequences")
+  
+  #Create new text file with the sequences saved
+  cat(seq_vector, file="Input_sequences", sep="\n",append=TRUE)
+  
+  #Execute the respective Perl script with the respective Sequence file
+  if(maxent_type == 3) cmd <- paste("score3.pl", "Input_sequences")
+  if(maxent_type == 5) cmd <- paste("score5.pl", "Input_sequences")
+  
+  #Save the calculated Maxent score file
+  x <- shell(cmd,intern=TRUE)
+  
+  if(length(x)!=0){
+    
+    #Substracting the Scores from the Maxent Score Table
+    x <- substr(x,(regexpr("\t",x)[[1]]+1),nchar(x))
+  }
+  
+  #Returning the maxent table
+  return(x)
+  
+}
+
+
+
+#Calculate maxent score for SAs
+fib$maxent3 <-  calculate_maxent(fib$acceptor_seq,3)
+
+setwd(curwd)
+
+
+#Get sequence for upstream and downstream 40nt hexplorer integral
+fib$SD_50nt_up <- substr(fib$SD_surrounding, 39,88)
+fib$SD_50nt_down <- substr(fib$SD_surrounding, 100,149)
+
+fib$SA_50nt_up <- substr(fib$SA_surrounding, 46,95)
+fib$SA_50nt_down <- substr(fib$SA_surrounding, 86,135)
+
+
+fib$HEX_40up_SD <- 0
+fib$HEX_40down_SD <- 0
+
+fib$HEX_40up_SA <- 0
+fib$HEX_40down_SA <- 0
+
+#Save
+save(fib, file="endo_before_hexplorer_int")
+
+
+
+
+#Search critical NOS3 exon junction
+enos <- fib[fib$gene_name=="NOS3",]
+enos$GNRgfl_to_GNRgf0 <- round(enos$mean_GNR_rpmg_gfl/enos$mean_GNR_rpmg_gf0*100, digits=2)
+enos <- enos[enos$ldiff==0 & enos$rdiff==0,]
+enos2 <- enos[enos$norm_lend == 151002304 & enos$norm_rstart == 151006427,]
+
+enos3 <- enos[enos$mean_GNR_rpmg_gn0 > 85,]
+enos2 <- enos[enos$norm_lend == 	151002304 & enos$norm_rstart == 	151003311,]
+
+
+write.csv2(enos, file="ENOS.csv", row.names = F)
