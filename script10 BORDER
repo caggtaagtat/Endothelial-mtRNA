@@ -1,0 +1,96 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=4:mem=16gb:arch=ivybridge
+#PBS -l walltime=70:59:59
+
+#Change working directory
+cd /path_to/Project/Gap_tab/MTreads/
+
+#For every Bam file in the directory
+find /folder_with_final_BAM_files/ -name ".bam" | while read SAMPLE
+
+#Do the following
+do
+
+#Get the guist of the name
+FILEBASE=$(basename "${SAMPLE%.bam}")
+
+#Create output table
+echo -n > $FILEBASE.mt_border_coverage
+
+
+echo "Forward strand" >> $FILEBASE.mt_border_coverage
+echo -e "MT\t653\t654" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:641-641" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t1607\t1608" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:1595-1595" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t1676\t1677" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:1664-1664" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t3235\t3236" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:3223-3223" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t3312\t3313" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:3298-3298" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t4268\t4269" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:4256-4256" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t4407\t4408" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:4325-4325" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t4475\t4476" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:4463-4463" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5517\t5518" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:5505-5505" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5909\t5910" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:5573-5573" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t7523\t7524" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:7439-7439" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t7591\t7592" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:7579-7579" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t8300\t8301" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:8263-8263" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t8371\t8372" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:8358-8358" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t8532\t8533" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:8566-8566" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t9212\t9213" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:9201-9201" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t9996\t9997" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:9984-9984" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t10064\t10065" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:10052-10052" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t10410\t10411" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:10398-10398" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t10475\t10476" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:10463-10463" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t10765\t10766" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:10760-10760" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t12143\t12144" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:12131-12131" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t12212\t12213" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:12200-12200" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t12271\t12272" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:12259-12259" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t12342\t12343" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:12330-12330" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t14752\t14753" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:14142-14142" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t15893\t15894" > gene2_gn0.bed
+/path_to/samtools view -f 16 -bu $FILEBASE.bam "MT:15881-15881" | /path_to/samtools view -f 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+
+echo "Reverse strand" >> $FILEBASE.mt_border_coverage
+echo -e "MT\t14679\t14680" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:16017-16017" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t14154\t14155" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:14736-14736" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t7451\t7452" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:14667-14667" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5831\t5832" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:7508-7508" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5766\t5767" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:5885-5885" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5662\t5663" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:5820-5820" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t5592\t5593" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:5723-5723" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+echo -e "MT\t4334\t4335" > gene2_gn0.bed
+/path_to/samtools view -F 16 -bu $FILEBASE.bam "MT:5649-5649" | /path_to/samtools view -F 16 -c -L gene2_gn0.bed >> $FILEBASE.mt_border_coverage
+
+
+done
