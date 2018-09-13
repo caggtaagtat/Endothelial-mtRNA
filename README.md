@@ -5,14 +5,13 @@ The mRNA was retrieved from total RNA, isolated from cardiovascular endothelial 
 <br />
 <br />
 
-
-### Quality assesment
-The quality of the reads was assessed using the tool FASTQC and MultiQC (script QA1), before and after every file processing step.
-<br />
-<br />
-
 ### FASTQ file processing
 Reads were trimmed or even wholly discarded, based on base calling quality and adapter content with the help of the tool Trimmomatic version 0.36 (script FFP1). Afterwards, extent of rRNA depletion before library preparation was measured by mapping the reads to rRNA databases using sortMeRNA algorithm version 2.1b (script FFP2). 
+<br />
+<br />
+
+### Quality assesment
+The quality of the reads was assessed using the tool FASTQC and MultiQC (script QA), before and after every file processing step.
 <br />
 <br />
 
