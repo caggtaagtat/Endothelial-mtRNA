@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mem=100gb:arch=ivybridge
+#PBS -l walltime=71:59:59
+
+#Change directory to new Salmon folder
+cd /path_to/Project/
+mkdir Salmon
+cd /path_to/Project/Salmon
+mkdir final_files
+
+#Creating Salmon index with 31-mers (31nt long k-mers) from the reference fasta sequence
+/path_to/salmon index -t transcripts.fa -i transcripts_index --type quasi -k 31
+
+#For every porcessed FASTQ file
+find /path_to/Project/rRNA_depletion/ -name "*.fq" | while read SAMPLE
+
+#Do the following
+do
+
+#Get sole file name
+FILEBASE=$(basename "${SAMPLE%.fq}")
+
+#Execute Salmon with previously created index for every FASTQ file
+/path_to/salmon quant -i /path_to/Project/Salmon/hg_salmon_index/ -l SR -r $SAMPLE -p 8 -o quants/$FILEBASE.quant
+
+done 
+
+#Move and rename every quant file from salmon
+
+#Change directory
+cd /gpfs/project/jopto100/DGE_endo/Salmon/quants/
+
+#For every quant directory
+find /gpfs/project/jopto100/DGE_endo/Salmon/quants/ -name "*.quant" | while read SAMPLE
+
+#Do the following
+do
+
+#Go into directory
+cd $SAMPLE
+
+#Get sole file name
+FILEBASE=$(basename "${SAMPLE%.quant}")
+
+#Copy the actual quant.sf file into a new folder and rename it by the sample name
+mv quant.sf  /path_to/Salmon/final_files/$FILEBASE.quant.sf
+
+done 
