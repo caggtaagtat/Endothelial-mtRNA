@@ -16,9 +16,15 @@ The quality of the reads was assessed using the tool FASTQC and MultiQC (script 
 <br />
 
 ### Aligning with STAR
-For alignment and following analysis, the human genomic reference sequence (GRCh38) and annotation data -release 91 - were downloaded from (ENSEMBL)[test.de]. Subsequently the reads were mapped to the human reference using the traditional aligner STAR version 2.5.4b (script STAR1-3).
+For alignment and following analysis, the human genomic reference sequence (GRCh38) and annotation data -release 91 - were downloaded from ENSEMBL. Subsequently the reads were mapped to the human reference using the traditional aligner STAR version 2.5.4b (script STAR1-3).
 <br />
 <br />
+
+### Mapping with salmon
+For differntial gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script SALMON).
+<br />
+<br />
+
 
 ### Counting reads on mitochondrial transcript boundaries
 Read coverage of gene to gene boundaries of mitochondrial transcripts was calculated using the samtools software package (script BORDER). 
