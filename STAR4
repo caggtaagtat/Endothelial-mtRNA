@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=8:mem=100gb:arch=ivybridge
+#PBS -l walltime=71:59:59
+
+#Change directory
+cd /path_to/Project/Gap_tab/
+
+#For every processed FASTQ file
+find /path_to/Project/rRNA_depletion/ -name "*.fq" | while read SAMPLE
+
+#Do the following
+do
+
+#Find the basename
+FILEBASE=$(basename "${SAMPLE%.fq}")
+
+#Make new directory for the samples second STAR run
+mkdir /path_to/Project/Gap_tab/$FILEBASE.STAR_second_pass
+
+#Enter the new directory
+cd /path_to/Project/Gap_tab/$FILEBASE.STAR_second_pass
+
+#Align with STAR aligner using previously created custom junction table
+/path_to/STAR --outFilterType BySJout --outFilterMismatchNmax 10 --outFilterMismatchNoverLmax 0.04 --alignEndsType EndToEnd -runThreadN 8 --outSAMtype BAM SortedByCoordinate --alignSJDBoverhangMin 4 --alignIntronMax 300000 --alignSJoverhangMin 8 --alignIntronMin 20 --genomeDir /path_to/Project/Gap_tab/Genome2/ --sjdbOverhang 149 --quantMode GeneCounts --sjdbGTFfile  /path_to/Homo_sapiens.GRCh38.91.gtf --readFilesIn $SAMPLE > STARaligning_second_pass.log
+
+done
+
