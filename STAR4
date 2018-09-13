@@ -28,6 +28,7 @@ done
 
 
 #After reordering/renaming of the BAM files, select only those which mapp uniquely and create index files
+cd /folder_with_final_BAM_files/
 
 #For every file in folder
 for i in *.bam
