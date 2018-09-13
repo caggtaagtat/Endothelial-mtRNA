@@ -25,3 +25,20 @@ cd /path_to/Project/Gap_tab/$FILEBASE.STAR_second_pass
 
 done
 
+
+
+#After reordering/renaming of the BAM files, select only those which mapp uniquely and create index files
+
+#For every file in folder
+for i in *.bam
+
+#Do the following
+do
+
+#Get only uniquely mapped reads for downstream analysis
+/path_to/samtools view -q 255 -b $i > $i.q255.bam
+
+#Do indexing of the new bam file
+/path_to/samtools index $i.q255.bam $i.q255.bam.bai
+
+done
