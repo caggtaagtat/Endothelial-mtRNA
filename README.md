@@ -10,7 +10,7 @@ Reads were trimmed or even wholly discarded, based on base calling quality and a
 <br />
 <br />
 
-### Quality assesment
+### Quality assessment
 The quality of the reads was assessed using the tool FASTQC and MultiQC (script2 QA), before and after every file processing step.
 <br />
 <br />
@@ -21,7 +21,7 @@ For alignment and following analysis, the human genomic reference sequence (GRCh
 <br />
 
 ### Mapping with salmon
-For differntial gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script4 SALMON).
+For differential gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script4 SALMON).
 <br />
 <br />
 
