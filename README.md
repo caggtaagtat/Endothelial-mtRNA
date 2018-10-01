@@ -21,7 +21,7 @@ For alignment and following analysis, the human genomic reference sequence (GRCh
 <br />
 
 ### Mapping with salmon
-For differential gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner samlmon (script4 SALMON).
+For differential gene expression analysis, the processed fastq files were mapped to the reference using the quasi-aligner salmon (script4 SALMON).
 <br />
 <br />
 
