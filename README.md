@@ -1,7 +1,7 @@
 ## Analysis of RNA sequencing data from cardiovascular endothelial cells
 
 ### Library preparation
-The mRNA was retrieved from total RNA, isolated from cardiovascular endothelial cells after one week exposure to four differently composed media. Library construction and sequencing (Illumina 3000) were performed at Genomics and Transcriptomics Labor of the Heinrich-Heine university in Düsseldorf. 
+The mRNA was retrieved from total RNA, isolated from cardiovascular endothelial cells after one week exposure to differently composed media. Library construction and sequencing (Illumina 3000) were performed at Genomics and Transcriptomics Labor of the Heinrich-Heine university in Düsseldorf. 
 <br />
 <br />
 
